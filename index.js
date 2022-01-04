@@ -62,13 +62,30 @@ client.on('messageCreate', message => {
             );
 
 		message.channel.send({ content: 'Emoji Maker', components: [row]});
+    } else if (command === 'slots') {
+        let emojiCount = 0;
+        let aEmojiCount = 0;    // animated emoji
+
+        for(var gEmoji of message.guild.emojis.cache.values()) {
+            if(gEmoji.animated) {
+                aEmojiCount += 1;
+            } else {
+                emojiCount += 1;
+            }
+        }
+
+        message.channel.send(`There are ${250-emojiCount} available emoji slots and ${250-aEmojiCount} available animated emoji slots remaining`);
     } else if (command === 'help') {
-        message.channel.send('**!emoji** w/ attached image suited to be an emoji*\n*.png or .jpg less than 256kb, name at least 2 characters long, contains only alphanumeric characters or underscores\n\n**!site** quickly resize and name images to fit emoji requirements with this lil webtool')
+        message.channel.send('**!emoji [name?]** - with attached image suited to be an emoji*. Emoji will be added after mod approval\n*.png or .jpg less than 256kb, name at least 2 characters long, contains only alphanumeric characters or underscores\n\n**!site** - Quickly resize and name images to fit emoji requirements with this lil webtool\n\n**!slots** - Check how many available emoji slots are remaining\n\n**!help** - Displays this^ message');
     } else if (command === 'emoji') {
         if(message.attachments.size > 0) {
             let potEmoji = message.attachments.first(); // potential emoji
             if(potEmoji.name.split('.').length == 2) {
                 let emojiName = potEmoji.name.split('.')[0];
+                if(args.length >= 1) {
+                    emojiName = args[0];
+                }
+
                 if(emojiName.match(/^[\w\d_]{2,}$/)) {
                     if(potEmoji.contentType == 'image/png'
                     || potEmoji.contentType == 'image/jpg'
