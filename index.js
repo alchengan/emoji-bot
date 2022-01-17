@@ -36,10 +36,15 @@ client.on('messageCreate', message => {
         const collector = message.createReactionCollector({ filter }); // only add emoji if admin approves
 
         collector.on('collect', () => {
-            let pEmoji = message.attachments.first().url;       // primed emoji
-            let pEmojiName = message.content.split(/ +/)[0];    // primed emoji name; assumes first word in message is emoji name
-            message.channel.send(`${pEmojiName} approved!`);
-            message.guild.emojis.create(pEmoji, pEmojiName);
+            message.channel.messages.fetch(message.reference.messageId)
+                .then(m => {
+                    let pEmoji = m.attachments.first().url;           // primed emoji
+                    let pEmojiName = message.content.split(/ +/)[0];  // primed emoji name; assumes first word in pending approval message is emoji name
+                    message.guild.emojis.create(pEmoji, pEmojiName)
+                        .then(e => message.channel.send(`${e.name} approved! ${e}`))
+                        .catch(console.error);
+                })
+                .catch(console.error);
             collector.stop();   // stop waiting for reactions when mod approves
         });
         return;
@@ -80,30 +85,33 @@ client.on('messageCreate', message => {
     } else if (command === 'emoji') {
         if(message.attachments.size > 0) {
             let potEmoji = message.attachments.first(); // potential emoji
-            if(potEmoji.name.split('.').length == 2) {
-                let emojiName = potEmoji.name.split('.')[0];
-                if(args.length >= 1) {
-                    emojiName = args[0];
-                }
+            
+            // determining what the name of the emoji should be
+            let emojiName = potEmoji.name.split('.').slice(0,-1).join('.'); // gets rid of file extension
+            if(args.length >= 1) {
+                emojiName = args[0];    // name from args takes priority over file name
+            }
 
-                if(emojiName.match(/^[\w\d_]{2,}$/)) {
-                    if(potEmoji.contentType == 'image/png'
-                    || potEmoji.contentType == 'image/jpg'
-                    || potEmoji.contentType == 'image/jpeg'
-                    || potEmoji.contentType == 'image/gif') {
-                        if(potEmoji.size/1024 < 256) {
-                            for(var e of message.guild.emojis.cache.values()) {
-                                if(emojiName === e.name) {
-                                    message.channel.send('Emoji name already in use');
-                                    return;
-                                }
+            if(emojiName.match(/^[\w\d_]{2,}$/)) {  // check against an accepted names regex
+                // check accepted file types
+                if(potEmoji.contentType == 'image/png'
+                || potEmoji.contentType == 'image/jpg'
+                || potEmoji.contentType == 'image/jpeg'
+                || potEmoji.contentType == 'image/gif') {
+                    // check accepted file size
+                    if(potEmoji.size/1024 < 256) {
+                        // check if emoji name is already in use
+                        for(var e of message.guild.emojis.cache.values()) {
+                            if(emojiName === e.name) {
+                                message.reply('Emoji name already in use');
+                                return;
                             }
-                            message.channel.send({content: `${emojiName} pending mod approval...`, files: [potEmoji.url]});
-                        } else message.channel.send('File is too large');
-                    } else message.channel.send('Incompatible file type');
-                } else message.channel.send('Improper name');
-            } else message.channel.send('Improper name');
-        } else message.channel.send('Please attach an image');
+                        }
+                        message.reply({content: `${emojiName} pending mod approval...`});
+                    } else message.reply('File is too large');
+                } else message.reply('Incompatible file type');
+            } else message.reply(`Improper name '${emojiName}'`);
+        } else message.reply('Please attach an image');
     }
 });
 
