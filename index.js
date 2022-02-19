@@ -92,25 +92,36 @@ client.on('messageCreate', message => {
                 emojiName = args[0];    // name from args takes priority over file name
             }
 
-            if(emojiName.match(/^[\w\d_]{2,}$/)) {  // check against an accepted names regex
-                // check accepted file types
-                if(potEmoji.contentType == 'image/png'
-                || potEmoji.contentType == 'image/jpg'
-                || potEmoji.contentType == 'image/jpeg'
-                || potEmoji.contentType == 'image/gif') {
-                    // check accepted file size
-                    if(potEmoji.size/1024 < 256) {
-                        // check if emoji name is already in use
-                        for(var e of message.guild.emojis.cache.values()) {
-                            if(emojiName === e.name) {
-                                message.reply('Emoji name already in use');
-                                return;
-                            }
-                        }
-                        message.reply({content: `${emojiName} pending mod approval...`});
-                    } else message.reply('File is too large');
-                } else message.reply('Incompatible file type');
-            } else message.reply(`Improper name '${emojiName}'`);
+            // check proper name
+            if(!emojiName.match(/^[\w\d_]{2,}$/)) {
+                message.reply(`Improper name '{$emojiName}'`);
+                return;
+            }
+
+            // check filetype
+            if(potEmoji.contentType != 'image/png'
+            && potEmoji.contentType != 'image/jpg'
+            && potEmoji.contentType != 'image/jpeg'
+            && potEmoji.contentType != 'image/gif') {
+                message.reply('Incompatible file type');
+                return;
+            }
+
+            // check file size
+            if(potEmoji.size/1024 < 256) {
+                message.reply('File is too large');
+                return;
+            }
+
+            // check name not already in use
+            for(var e of message.guild.emojis.cache.values()) {
+                if(emojiName === e.name) {
+                    message.reply('Emoji name already in use');
+                    return;
+                }
+            }
+
+            message.reply({content: `${emojiName} pending mod approval...`});           
         } else message.reply('Please attach an image');
     }
 });
